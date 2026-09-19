@@ -1,0 +1,30 @@
+# 仮想環境
+.venv
+
+# Git
+.git
+.gitignore
+
+# Python キャッシュ
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+
+# OS
+.DS_Store
+
+# エディタ
+.vscode
+.idea
+
+# インフラ・デプロイ関連（イメージに含める必要なし）
+Dockerfile
+template.yaml
+samconfig.toml
+deploy.sh
+*.sh
+
+# SAM ビルド成果物
+.aws-sam

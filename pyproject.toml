@@ -1,0 +1,41 @@
+[project]
+name = "accent-notebook"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "hiro16131104",email = "hiro931104@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask (>=3.1.3,<4.0.0)",
+    "gunicorn (>=25.1.0,<26.0.0)",
+]
+
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+exclude = [".venv"]
+extend-ignore = ["E203"]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "flake8-pyproject (>=1.2.4,<2.0.0)",
+    "black (>=26.3.1,<27.0.0)",
+    "isort (>=8.0.1,<9.0.0)",
+]

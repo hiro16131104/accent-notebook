@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}アクセント単語帳{% endblock %}</title>
+    <meta
+      name="description"
+      content="{% block description %}日本語の単語をモーラ単位のアクセント（高/低）付きで記録・検索できる学習用単語帳。{% endblock %}"
+    />
+    {% if app_env == "dev" %}
+    <meta name="robots" content="noindex, nofollow" />
+    {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Noto Sans JP"', "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    {% block head %}{% endblock %}
+  </head>
+  <body class="font-sans flex flex-col min-h-screen bg-gray-50 text-gray-800">
+    <header class="bg-gray-900 text-white px-4 py-2.5">
+      <nav class="flex items-center gap-2">
+        <a
+          href="{{ url_for('index') }}"
+          class="text-base font-bold tracking-wide hover:text-gray-300 transition-colors"
+          >アクセント単語帳</a
+        >
+        {% if app_env == "dev" %}
+        <span
+          class="text-xs font-semibold bg-yellow-400 text-yellow-900 rounded px-1.5 py-0.5 leading-none"
+          >DEV</span
+        >
+        {% endif %}
+      </nav>
+    </header>
+
+    <main class="flex-1 w-full max-w-2xl mx-auto px-4 py-5">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-center text-xs text-gray-300 py-4">
+      <p>&copy; 2026 アクセント単語帳</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Accent Notebook - Flask on Lambda (Lambda Web Adapter) + API Gateway REST
+
+# ==============================================================
+# パラメータ
+# ==============================================================
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, prod]
+    Default: dev
+    Description: デプロイ先の環境
+
+# ==============================================================
+# グローバル設定（全 Lambda 関数に適用）
+# ==============================================================
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Architectures:
+      - arm64
+
+# ==============================================================
+# リソース
+# ==============================================================
+Resources:
+
+  # ── Lambda 実行ロール（最小権限）────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "accent-notebook-lambda-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # CloudWatch Logs への書き込み権限のみ付与する
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # ── Lambda 関数 ──────────────────────────────────────────────
+  AccentNotebookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "accent-notebook-${Environment}"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      PackageType: Image
+      Environment:
+        Variables:
+          PORT: "8080"
+          APP_ENV: !Ref Environment
+          # LWA がアプリの起動完了を確認するパス
+          AWS_LWA_READINESS_CHECK_PATH: "/"
+      Events:
+        # ルートパス（/）
+        RootPath:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AccentNotebookApi
+            Path: /
+            Method: ANY
+        # それ以外の全パス
+        ProxyPath:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AccentNotebookApi
+            Path: /{proxy+}
+            Method: ANY
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./
+      Dockerfile: Dockerfile
+
+  # ── CloudWatch Logs（ログ保持期間を明示管理）────────────────
+  AccentNotebookLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/accent-notebook-${Environment}"
+      RetentionInDays: !If [IsProd, 90, 14]
+
+  # ── API Gateway REST API ─────────────────────────────────────
+  AccentNotebookApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "accent-notebook-api-${Environment}"
+      StageName: !Ref Environment
+      EndpointConfiguration:
+        Type: REGIONAL
+
+# ==============================================================
+# 条件
+# ==============================================================
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+# ==============================================================
+# 出力
+# ==============================================================
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway エンドポイント URL（ステージプレフィックスあり）
+    Value: !Sub "https://${AccentNotebookApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Export:
+      Name: !Sub "accent-notebook-${Environment}-api-endpoint"
+
+  LambdaFunctionArn:
+    Description: Lambda 関数 ARN
+    Value: !GetAtt AccentNotebookFunction.Arn
+    Export:
+      Name: !Sub "accent-notebook-${Environment}-function-arn"
+
+  LambdaFunctionName:
+    Description: Lambda 関数名
+    Value: !Ref AccentNotebookFunction
