@@ -24,3 +24,6 @@ instance/
 
 # Claude
 .claude/
+
+# AWS
+.aws-sam/

@@ -157,7 +157,7 @@
 
         <div>
           <span class="block text-xs font-semibold text-gray-600 mb-1"
-            >アクセント（モーラごとにクリックで高/低を切替）</span
+            >アクセント（タップ・クリックして選択してください）</span
           >
           <div id="mora-editor" class="flex flex-wrap gap-1" aria-label="モーラピッチエディタ"></div>
         </div>
@@ -200,18 +200,19 @@
     <div class="p-4">
       <h2 id="delete-confirm-heading" class="text-base font-bold mb-2">削除の確認</h2>
       <p id="delete-confirm-message" class="text-sm text-gray-600 mb-4"></p>
+      <p id="delete-confirm-error" class="hidden text-sm text-red-600 mb-4" role="alert"></p>
       <div class="flex justify-end gap-2">
         <button
           type="button"
           id="delete-confirm-cancel"
-          class="text-sm font-semibold text-gray-600 rounded-lg px-4 py-1.5 hover:bg-gray-100 transition-colors"
+          class="text-sm font-semibold text-gray-600 rounded-lg px-4 py-1.5 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           キャンセル
         </button>
         <button
           type="button"
           id="delete-confirm-ok"
-          class="bg-red-600 text-white text-sm font-semibold rounded-lg px-4 py-1.5 hover:bg-red-700 transition-colors"
+          class="bg-red-600 text-white text-sm font-semibold rounded-lg px-4 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           削除
         </button>

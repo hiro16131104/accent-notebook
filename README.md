@@ -9,6 +9,8 @@
 | 言語 | Python 3.12 |
 | フレームワーク | Flask 3.x |
 | フロントエンド | Tailwind CSS (CDN), Jinja2 |
+| 認証 | Google Identity Services（Google OAuth ログイン） |
+| データストア | DynamoDB |
 | パッケージ管理 | Poetry |
 | インフラ | AWS Lambda + API Gateway (Lambda Web Adapter) |
 | コンテナ | Docker (multi-stage build) |
@@ -32,6 +34,10 @@ python app.py
 ```
 
 http://localhost:5050 で確認できます。
+
+Google ログインおよび単語データの読み書きには、SSM パラメータストア（`GOOGLE_CLIENT_ID` など）と
+DynamoDB（`accent-notebook-words-local` テーブル）へのアクセス権を持つ AWS 認証情報が必要です。
+詳細は [AGENTS.md](AGENTS.md) の環境変数の項を参照してください。
 
 ### Docker でローカル起動
 
@@ -73,13 +79,20 @@ poetry run pytest
 
 ```
 accent-notebook/
-├── app.py                  # Flask アプリ・ルーティング
+├── app.py                  # Flask アプリ・ルーティング・Google認証
+├── libs/
+│   ├── mora.py              # モーラ分割・ひらがな判定ロジック
+│   └── words_store.py       # DynamoDB アクセス・単語のバリデーション
 ├── templates/
 │   ├── base.html           # 共通レイアウト
-│   └── index.html          # トップページ
+│   ├── index.html          # トップページ
+│   └── login.html          # ログインページ
 ├── static/                 # 静的ファイル
 ├── tests/
-│   └── test_app.py
+│   ├── conftest.py          # 共通フィクスチャ（DynamoDBモック等）
+│   ├── test_app.py
+│   ├── test_words_store.py
+│   └── test_mora.py
 ├── Dockerfile               # マルチステージビルド
 ├── template.yaml             # AWS SAM テンプレート
 ├── samconfig.toml            # SAM デプロイ設定 (dev / prod)

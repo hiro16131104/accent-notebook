@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block title %}ログイン - アクセント単語帳{% endblock %} {% block content %}
+<div class="flex flex-col items-center justify-center gap-6 py-20">
+  <h1 class="text-lg font-bold text-gray-800">ログイン</h1>
+  <p class="text-sm text-gray-500">Google アカウントでログインしてください。</p>
+
+  <div
+    id="g_id_onload"
+    data-client_id="{{ google_client_id }}"
+    data-login_uri="{{ url_for('auth_google_callback', _external=True) }}"
+    data-ux_mode="redirect"
+  ></div>
+  <div class="g_id_signin" data-type="standard" data-size="large" data-shape="pill"></div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+{% endblock %}

@@ -18,7 +18,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ csp_nonce }}">
       tailwind.config = {
         theme: {
           extend: {
@@ -44,6 +44,23 @@
           class="text-xs font-semibold bg-yellow-400 text-yellow-900 rounded px-1.5 py-0.5 leading-none"
           >DEV</span
         >
+        {% endif %}
+        {% if current_user %}
+        <div class="ml-auto flex items-center gap-2">
+          {% if current_user.picture %}
+          <img
+            src="{{ current_user.picture }}"
+            alt=""
+            referrerpolicy="no-referrer"
+            class="w-6 h-6 rounded-full"
+          />
+          {% endif %}
+          <form method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="text-xs text-gray-300 hover:text-white underline">
+              ログアウト
+            </button>
+          </form>
+        </div>
         {% endif %}
       </nav>
     </header>

@@ -18,7 +18,7 @@ Parameters:
 Globals:
   Function:
     Timeout: 30
-    MemorySize: 512
+    MemorySize: 256
     Architectures:
       - arm64
 
@@ -42,6 +42,35 @@ Resources:
       ManagedPolicyArns:
         # CloudWatch Logs への書き込み権限のみ付与する
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        # アプリ設定値（SECRET_KEY・GOOGLE_CLIENT_ID など）を SSM パラメータストア
+        # から読み取る権限。対象環境の envs/ 配下のみに限定する
+        - PolicyName: !Sub "accent-notebook-ssm-read-${Environment}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/accent-notebook/${Environment}/envs/*"
+              # SECRET_KEY は SecureString のため、復号に使う既定の
+              # SSM 用 KMS キー（aws/ssm）への Decrypt 権限も必要
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/ssm"
+        # 単語データを格納する DynamoDB テーブル（手動作成済み）への
+        # アクセス権限。対象環境のテーブルのみに限定する
+        - PolicyName: !Sub "accent-notebook-dynamodb-access-${Environment}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/accent-notebook-words-${Environment}"
 
   # ── Lambda 関数 ──────────────────────────────────────────────
   AccentNotebookFunction:
@@ -56,6 +85,12 @@ Resources:
           APP_ENV: !Ref Environment
           # LWA がアプリの起動完了を確認するパス
           AWS_LWA_READINESS_CHECK_PATH: "/"
+          # Flask セッション署名用 SECRET_KEY を格納した SSM パラメータ名
+          SECRET_KEY_PARAM: !Sub "/accent-notebook/${Environment}/envs/SECRET_KEY"
+          # Google OAuth クライアントIDを格納した SSM パラメータ名
+          GOOGLE_CLIENT_ID_PARAM: !Sub "/accent-notebook/${Environment}/envs/GOOGLE_CLIENT_ID"
+          # 単語データを格納する DynamoDB テーブル名（機密情報ではないため直値）
+          WORDS_TABLE_NAME: !Sub "accent-notebook-words-${Environment}"
       Events:
         # ルートパス（/）
         RootPath:
