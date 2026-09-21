@@ -35,6 +35,9 @@ const bookmarkFilter = document.getElementById("bookmark-filter");
 const sortModeSelect = document.getElementById("sort-mode");
 const wordList = document.getElementById("word-list");
 const emptyMessage = document.getElementById("empty-message");
+const loadingMessage = document.getElementById("loading-message");
+const loadErrorMessage = document.getElementById("load-error-message");
+const retryLoadButton = document.getElementById("retry-load");
 const selectionToolbar = document.getElementById("selection-toolbar");
 const selectAllCheckbox = document.getElementById("select-all");
 const selectionCount = document.getElementById("selection-count");
@@ -569,15 +572,28 @@ deleteSelectedButton.addEventListener("click", () => {
   });
 });
 
-async function init() {
+/** 単語一覧を取得して表示する。取得中はローディング表示、失敗時はエラー表示にする。 */
+async function loadAndRender() {
+  loadingMessage.classList.remove("hidden");
+  loadErrorMessage.classList.add("hidden");
   try {
     state.words = await loadWords();
   } catch (error) {
-    window.alert(error.message);
+    loadingMessage.classList.add("hidden");
+    loadErrorMessage.classList.remove("hidden");
+    return;
   }
+  loadingMessage.classList.add("hidden");
+  openAddWordButton.disabled = false;
+  render();
+}
+
+retryLoadButton.addEventListener("click", loadAndRender);
+
+function init() {
   renderMoraEditor();
   renderPitchPreview();
-  render();
+  loadAndRender();
 }
 
 init();
