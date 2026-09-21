@@ -3,7 +3,7 @@
 # Accent Notebook デプロイ / ローカル起動スクリプト
 #
 # Usage:
-#   ./deploy.sh local        # Docker でローカル起動（ポート 8080）
+#   ./deploy.sh local        # Docker でローカル起動（ポート 5050）
 #   ./deploy.sh dev          # 開発環境へデプロイ
 #   ./deploy.sh prod         # 本番環境へデプロイ
 #
@@ -63,12 +63,14 @@ echo ""
 # ── ローカル起動 ─────────────────────────────────────────────────
 if [[ "$ENV" == "local" ]]; then
     IMAGE_NAME="accent-notebook-local"
-    PORT=8080
+    # ホスト側の公開ポート（python app.py と同じ 5050）。コンテナ内は Dockerfile の 8080 固定
+    HOST_PORT="${HOST_PORT:-5050}"
+    CONTAINER_PORT=8080
 
     echo "======================================================"
     echo "  ローカル起動モード"
     echo "  イメージ名 : ${IMAGE_NAME}"
-    echo "  URL        : http://localhost:${PORT}"
+    echo "  URL        : http://localhost:${HOST_PORT}"
     echo "======================================================"
     echo ""
     echo "[1/2] Docker イメージをビルド..."
@@ -79,7 +81,21 @@ if [[ "$ENV" == "local" ]]; then
     echo "      停止するには Ctrl+C を押してください。"
     echo ""
     # --rm: 停止時にコンテナを自動削除
-    docker run --rm -p "${PORT}:${PORT}" "${IMAGE_NAME}"
+    # Lambda 上では AWS_REGION・認証情報が自動で注入されるが、ローカルの
+    # コンテナには無いため、boto3 (DynamoDB / SSM) 用に明示的に渡す。
+    #   - リージョン: AWS_DEFAULT_REGION（未設定なら ap-northeast-1）
+    #   - 認証情報  : ~/.aws を読み取り専用でマウント（AWS_PROFILE があれば引き継ぐ）
+    #   - テーブル名・Google クライアント ID の SSM パラメータ名:
+    #     python app.py 起動時の既定値（app.py の __main__）と同じ値
+    # ※ SSO などホスト側ツールに依存する認証方式はコンテナ内では使えない
+    docker run --rm -p "${HOST_PORT}:${CONTAINER_PORT}" \
+        -e "AWS_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}" \
+        -e "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-1}" \
+        -e "AWS_PROFILE=${AWS_PROFILE:-default}" \
+        -e "WORDS_TABLE_NAME=${WORDS_TABLE_NAME:-accent-notebook-words-local}" \
+        -e "GOOGLE_CLIENT_ID_PARAM=${GOOGLE_CLIENT_ID_PARAM:-/accent-notebook/local/envs/GOOGLE_CLIENT_ID}" \
+        -v "${HOME}/.aws:/root/.aws:ro" \
+        "${IMAGE_NAME}"
     exit 0
 fi
 

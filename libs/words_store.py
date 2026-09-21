@@ -105,14 +105,14 @@ def _validate_moras(reading, moras):
     if not expected_texts:
         raise ValidationError("読みを入力してください。")
     if not isinstance(moras, list) or len(moras) != len(expected_texts):
-        raise ValidationError("モーラの指定が不正です。")
+        raise ValidationError("拍の指定が不正です。")
     validated = []
     for expected_text, mora in zip(expected_texts, moras):
         if not isinstance(mora, dict) or mora.get("text") != expected_text:
-            raise ValidationError("モーラの指定が不正です。")
+            raise ValidationError("拍の指定が不正です。")
         pitch = mora.get("pitch")
         if pitch not in ("H", "L"):
-            raise ValidationError("モーラの指定が不正です。")
+            raise ValidationError("拍の指定が不正です。")
         validated.append({"text": expected_text, "pitch": pitch})
     return validated
 

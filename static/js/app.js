@@ -20,6 +20,7 @@ let draftFinalDrop = false;
 let editingId = null;
 let pendingDeleteAction = null;
 let deleting = false;
+let saving = false;
 const selectedIds = new Set();
 
 const wordForm = document.getElementById("word-form");
@@ -165,7 +166,7 @@ function renderMoraEditor() {
     moraEditor.appendChild(
       el("p", {
         className: "text-xs text-gray-400",
-        text: "読みを入力するとモーラが表示されます。",
+        text: "読みを入力すると拍が表示されます。",
       }),
     );
     return;
@@ -377,6 +378,16 @@ function openDialogForEdit(word) {
   wordInput.focus();
 }
 
+/** 追加・保存中はボタンのラベルを切り替え、無効化して二重送信とダイアログの誤クローズを防ぐ。 */
+function setSaving(value) {
+  saving = value;
+  submitButton.disabled = value;
+  closeAddWordButton.disabled = value;
+  submitButton.setAttribute("aria-busy", String(value));
+  const idleLabel = editingId ? "保存" : "追加";
+  submitButton.textContent = value ? `${idleLabel}中…` : idleLabel;
+}
+
 /** 削除中は確認ダイアログを開いたまま、ボタンを無効化して二重操作を防ぐ。 */
 function setDeleting(value) {
   deleting = value;
@@ -444,9 +455,13 @@ deleteConfirmDialog.addEventListener("close", () => {
 openAddWordButton.addEventListener("click", openDialogForAdd);
 closeAddWordButton.addEventListener("click", () => addWordDialog.close());
 addWordDialog.addEventListener("click", (event) => {
-  if (event.target === addWordDialog) {
+  if (event.target === addWordDialog && !saving) {
     addWordDialog.close();
   }
+});
+// 追加・保存中は Esc でも閉じないようにする
+addWordDialog.addEventListener("cancel", (event) => {
+  if (saving) event.preventDefault();
 });
 addWordDialog.addEventListener("close", () => {
   resetForm();
@@ -468,6 +483,7 @@ wordInput.addEventListener("input", clearFormError);
 
 wordForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (saving) return;
 
   const word = wordInput.value.trim();
   const reading = readingInput.value.trim();
@@ -485,7 +501,8 @@ wordForm.addEventListener("submit", async (event) => {
     moras: draftMoras.map((m) => ({ ...m })),
     final_drop: draftFinalDrop,
   };
-  submitButton.disabled = true;
+  clearFormError();
+  setSaving(true);
   try {
     if (editingId) {
       const updated = await updateWord(editingId, payload);
@@ -499,7 +516,7 @@ wordForm.addEventListener("submit", async (event) => {
   } catch (error) {
     showFormError(error.message);
   } finally {
-    submitButton.disabled = false;
+    setSaving(false);
   }
 });
 

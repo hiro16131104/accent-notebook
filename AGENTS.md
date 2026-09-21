@@ -48,6 +48,19 @@ accent-notebook/
 
 ---
 
+## ログ
+
+`libs/logging_config.py` で `app.logger` を標準エラー出力へ出す（Lambda では
+CloudWatch Logs に自動転送されるためファイル出力はしない）。書式は人が読みやすい
+テキスト形式: `時刻 レベル [リクエストID] メッセージ`
+
+- リクエストごとに1行（メソッド・パス・ステータス・処理時間・ユーザー `sub`）。
+  5xx=ERROR / 4xx=WARNING / それ以外=INFO。メールアドレスや単語の内容は記録しない
+- 未処理の例外は `app.py` の `handle_unexpected_error` でスタックトレース付きで記録し 500 を返す
+- ログレベルは `APP_ENV=dev` で DEBUG、それ以外は INFO
+
+---
+
 ## 環境変数
 
 | 変数 | 値 | 説明 |
@@ -71,7 +84,7 @@ accent-notebook/
 ### デプロイコマンド
 
 ```bash
-# ローカル起動 (Docker, ポート 8080)
+# ローカル起動 (Docker, ポート 5050)
 ./deploy.sh local
 
 # 開発環境デプロイ

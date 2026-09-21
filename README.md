@@ -45,7 +45,11 @@ DynamoDB（`accent-notebook-words-local` テーブル）へのアクセス権を
 ./deploy.sh local
 ```
 
-`http://localhost:8080` で確認できます。
+`http://localhost:5050` で確認できます。
+
+コンテナには `~/.aws` を読み取り専用でマウントし、リージョン（`AWS_DEFAULT_REGION`、
+既定は `ap-northeast-1`）・`AWS_PROFILE`・`WORDS_TABLE_NAME`・`GOOGLE_CLIENT_ID_PARAM` を
+環境変数で渡しています。必要に応じて `./deploy.sh local` の実行前に export して上書きしてください。
 
 ## テスト
 

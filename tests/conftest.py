@@ -17,7 +17,7 @@ def dynamodb_table(monkeypatch):
     """moto でDynamoDBをモックし、単語テーブルを用意する。"""
     monkeypatch.setenv("WORDS_TABLE_NAME", WORDS_TABLE_NAME)
     with mock_aws():
-        dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
+        dynamodb = boto3.client("dynamodb", region_name="ap-northeast-1")
         dynamodb.create_table(
             TableName=WORDS_TABLE_NAME,
             KeySchema=[

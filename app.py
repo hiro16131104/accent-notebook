@@ -1,6 +1,8 @@
 import hmac
 import os
 import secrets
+import time
+import uuid
 from datetime import timedelta
 from functools import wraps
 
@@ -18,9 +20,11 @@ from flask import (
 )
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from libs import words_store
+from libs.logging_config import setup_logging
 
 
 def _load_config(param_env_var, literal_env_var, default=None):
@@ -46,6 +50,7 @@ SECRET_KEY = _load_config(
 GOOGLE_CLIENT_ID = _load_config("GOOGLE_CLIENT_ID_PARAM", "GOOGLE_CLIENT_ID", "")
 
 app = Flask(__name__)
+setup_logging(app, debug=APP_ENV == "dev")
 app.secret_key = SECRET_KEY
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -69,6 +74,52 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def generate_csp_nonce():
     """自前のインラインスクリプト（Tailwind設定）用にリクエストごとのnonceを発行する。"""
     g.csp_nonce = secrets.token_urlsafe(16)
+
+
+@app.before_request
+def start_request_log():
+    """リクエストIDの採番と処理時間の計測を開始する。"""
+    # API Gateway 経由なら X-Amzn-Trace-Id の Root を使い、CloudWatch 側の
+    # ログ・トレースと突き合わせられるようにする。なければ自前で採番する
+    trace_id = request.headers.get("X-Amzn-Trace-Id", "")
+    root = trace_id.split(";")[0].removeprefix("Root=")
+    g.request_id = root or uuid.uuid4().hex[:8]
+    g.request_start = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    """リクエストごとに1行ログを出す（ステータスに応じてレベルを変える）。"""
+    elapsed_ms = (time.perf_counter() - g.request_start) * 1000
+    if response.status_code >= 500:
+        level = "error"
+    elif response.status_code >= 400:
+        level = "warning"
+    else:
+        level = "info"
+    # ユーザー識別子はメールアドレスではなく Google の sub のみ記録する
+    user = session.get("user")
+    getattr(app.logger, level)(
+        "%s %s -> %s (%.1fms) user=%s",
+        request.method,
+        request.path,
+        response.status_code,
+        elapsed_ms,
+        user["sub"] if user else "-",
+    )
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    """想定外の例外をスタックトレース付きでログに残し、500 を返す。"""
+    if isinstance(error, HTTPException):
+        # abort() などによる 4xx は Flask 標準の応答に任せる（ログは log_request）
+        return error
+    app.logger.exception("未処理の例外: %s %s", request.method, request.path)
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "サーバーエラーが発生しました。"}), 500
+    return "サーバーエラーが発生しました。", 500
 
 
 @app.after_request
